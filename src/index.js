@@ -3,6 +3,9 @@ const linspace = require("ndarray-linspace");
 const vectorFill = require("ndarray-vector-fill");
 const ndarray = require("ndarray");
 const ease = require("eases/cubic-in-out");
+const scaleNeuronPositions = require("./scaleNeuronPositions")
+const data = require("./assets/data/feed_json");
+
 
 var hasCanvas = document.querySelector("canvas");
 if (hasCanvas) hasCanvas.remove();
@@ -11,13 +14,17 @@ canvas.height = window.innerHeight - 20;
 canvas.width = window.innerWidth - 20;
 const el = document.body.appendChild(canvas);
 
+
+const neurons = scaleNeuronPositions(data.neurons, canvas.width, canvas.height);
+
+
 const regl = require("regl")({
   canvas: el,
   onDone: require("fail-nicely")
 });
 
-const nPoints = 2;
-const pointRadius = 50;
+let nPoints = 2;
+
 
 const drawPoints = regl({
   vert: `
@@ -42,9 +49,9 @@ const drawPoints = regl({
     `),
   depth: { enable: false },
   attributes: {
-    xy0: () => regl.buffer([[0, 0], [0,0]]),
-    xy1: () => regl.buffer([[.4, 0], [0,.4]]),
-    color01: () => regl.buffer([0.5, .3])
+    xy0: () => regl.buffer(neurons.map(n => n.posScaled)),
+    xy1: () => regl.buffer(neurons.map(n => n.posScaled)),
+    color01: () => regl.buffer(neurons.map(n => .5))
   },
   uniforms: {
     radius: regl.prop('radius'),
@@ -52,7 +59,7 @@ const drawPoints = regl({
     interp01: (ctx, props) => Math.max(0, Math.min(1, props.interp01))
   },
   primitive: "point",
-  count: () => nPoints
+  count: () => neurons.length
 });
 
 regl.frame(({ tick, time }) => {
@@ -60,5 +67,6 @@ regl.frame(({ tick, time }) => {
 //     color: [0, 0, 0, 1],
 //     depth: 1
 //   });
-  drawPoints({ interp01: Math.sin(time), radius: Math.sin(time)*100 });
+  
+  drawPoints({ interp01: .5, radius: 10 });
 });
