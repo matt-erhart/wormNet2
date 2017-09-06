@@ -1,45 +1,46 @@
 {
-  "name": "wormnet2",
-  "version": "1.0.0",
-  "description": "Smoothly animating worm neurons with regl",
-  "main": "index.js",
+  "name": "regl-glslify-webpack-example",
+  "version": "0.0.0",
+  "description": "A simple regl example using webpack and glslify",
+  "main": "bundle.js",
   "scripts": {
-    "start": "budo --open --live --force-default-index --host localhost src/index.js -- -g es2040 -t glslify",
-    "build": "browserify index.js -g es2040 -t glslify | uglifyjs -cm| indexhtmlify | metadataify | github-cornerify > index.html",
-    "lint": "standard",
-    "lint-fix": "standard --fix"
+    "start": "webpack-dev-server",
+    "build": "webpack",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "repository": {
-    "type": "git",
-    "url": ""
-  },
-  "keywords": [],
-  "author": "Matt Erhart",
-  "license": "",
+  "author": "Giff Song <giff.song@gmail.com>",
+  "license": "MIT",
   "dependencies": {
-    "babel-preset-env": "^1.6.0",
-    "browserify": "^14.4.0",
-    "budo": "^10.0.4",
+    "canvas-orbit-camera": "^1.0.2",
     "control-panel": "^1.2.0",
     "d3": "^4.10.2",
     "eases": "^1.0.8",
-    "es2040": "^1.2.5",
     "fail-nicely": "^2.0.0",
-    "github-cornerify": "^1.0.7",
+    "gl-mat4": "^1.1.4",
+    "gl-vec2": "^1.0.0",
+    "gl-vec3": "^1.0.3",
     "glsl-colormap": "^1.0.1",
+    "glsl-diffuse-lambert": "^1.0.0",
     "glslify": "^6.1.0",
-    "indexhtmlify": "^1.3.1",
     "lodash": "^4.17.4",
-    "metadataify": "^1.0.3",
+    "mathjs": "^3.16.3",
     "ndarray": "^1.0.18",
     "ndarray-linspace": "^2.0.3",
+    "ndarray-ops": "^1.2.2",
+    "ndarray-pack": "^1.2.1",
+    "ndarray-show": "^2.0.0",
     "ndarray-vector-fill": "^1.0.0",
     "regl": "^1.3.0",
-    "standard": "^9.0.1",
-    "uglify-js": "^2.8.13"
+    "regl-camera": "^2.1.1"
   },
   "devDependencies": {
-    "babel-preset-es2017": "^6.24.1",
-    "babelify": "^7.3.0"
+    "babel-core": "^6.26.0",
+    "babel-loader": "^7.1.2",
+    "babel-preset-es2015": "^6.21.1",
+    "glslify-loader": "^1.0.2",
+    "json-loader": "^0.5.4",
+    "raw-loader": "^0.5.1",
+    "webpack": "^3.5.5",
+    "webpack-dev-server": "^2.7.1"
   }
 }

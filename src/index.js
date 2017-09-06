@@ -3,12 +3,11 @@ const linspace = require("ndarray-linspace");
 const vectorFill = require("ndarray-vector-fill");
 const ndarray = require("ndarray");
 const ease = require("eases/cubic-in-out");
-const scaleNeuronPositions = require("./scaleNeuronPositions");
-const data = require("./assets/data/full_json");
-const propagationsAsArrays = require('./organizeData')
-const d3 = require('d3');
-
-
+import { scaleNeuronPositions } from "./scaleNeuronPositions";
+const data = require("./assets/data/full.json");
+import { propagationsAsArrays } from "./organizeData";
+const d3 = require("d3");
+const mat4 = require("gl-mat4");
 
 var hasCanvas = document.querySelector("canvas");
 if (hasCanvas) hasCanvas.remove();
@@ -20,115 +19,107 @@ canvas.width = window.innerWidth - 20;
 const el = document.body.appendChild(canvas);
 
 const neurons = scaleNeuronPositions(data.neurons, canvas.width, canvas.height);
-const propagations = propagationsAsArrays(data.propagations, neurons)
-nTimePoints = data.meta[0].numberOfTimePoints;
+
+const propagations = propagationsAsArrays(data.propagations, neurons);
+
+const nTimePoints = data.meta[0].numberOfTimePoints;
 let prog = 0;
 let startTime = 0;
-let duration = 30; //seconds
+let duration = 5; //seconds
 const timeScale = d3
-.scaleLinear()
-.domain([0,nTimePoints])
-.range([0, 1]); 
+  .scaleLinear()
+  .domain([0, nTimePoints])
+  .range([0, 1]);
 
-
-let startEndTimesFromAnimationDuration = propagations.startEndTimes.map(times => {
-  return times.map(x => timeScale(+x) * duration)
-})
-
-console.log(startEndTimesFromAnimationDuration)
+let startEndTimesFromAnimationDuration = propagations.startEndTimes.map(
+  times => {
+    return times.map(x => timeScale(+x) * duration);
+  }
+);
 
 const regl = require("regl")({
+  extensions: ["EXT_disjoint_timer_query"],
   canvas: el,
   onDone: require("fail-nicely")
 });
 
-const pointsFrag = glsl(`
-precision mediump float;
-#pragma glslify: colormap = require(glsl-colormap/viridis)
-varying float color01_v2f; //from the vertex shader
-void main () {
-    gl_FragColor = colormap(color01_v2f);
-}
-`);
+console.log(propagations)
+let camera = require("canvas-orbit-camera")(canvas);
 
 const drawPoints = regl({
-  vert: `
-  precision mediump float;
-  attribute vec2 xy;
-  attribute float color01; //color map value between 0 and 1
-  varying float color01_v2f; // vertex 2 frag
-  uniform float aspect, radius;
-  void main () {
-      color01_v2f = color01; //varying passes to frag
-      gl_Position = vec4(xy.x, xy.y * aspect, 0, 1);
-      gl_PointSize = radius;
-  }`,
-  frag: pointsFrag,
+  vert: require("raw-loader!glslify-loader!./pointStatic.vert"),
+  frag: require("raw-loader!glslify-loader!./pointInterp.frag"),
   depth: { enable: false },
   attributes: {
-    xy: () => regl.buffer(neurons.map(n => n.posScaled)),
-    color01: () =>
-      regl.buffer(neurons.map(n => (n.type === "excites" ? 0.1 : 0.9)))
+    xy: () => regl.buffer(neurons.map(n => n.pos3d)),
+    colors: () => regl.buffer(neurons.map(n => n.rgb))
   },
   uniforms: {
     radius: regl.prop("radius"),
     aspect: ctx => ctx.viewportWidth / ctx.viewportHeight,
-    interp01: (ctx, props) => Math.max(0, Math.min(1, props.interp01))
+    projection: ({ viewportWidth, viewportHeight }) =>
+      mat4.perspective(
+        [],
+        Math.PI / 4.0,
+        viewportWidth / viewportHeight,
+        0.1,
+        1000
+      ),
+    model: mat4.identity([]),
+    view: () => camera.view()
   },
   primitive: "point",
   count: () => neurons.length
 });
 
 const interpPoints = regl({
-  vert: `
-    precision mediump float;
-    attribute vec2 propagationSources, propagationTargets, startEndTimes; //points to interpolate between
-    attribute float color01; //color map value between 0 and 1
-    varying float color01_v2f; // vertex 2 frag
-    uniform float aspect, elapsedTime, radius; //interp 0-1
-    float progress01;
-    void main () {
-        if (startEndTimes[0] <= elapsedTime && startEndTimes[1] >= elapsedTime) {
-          progress01 = (elapsedTime - startEndTimes[0]) / (startEndTimes[1] - startEndTimes[0]);
-          vec2 pos = mix(propagationSources, propagationTargets, progress01);
-          gl_Position = vec4(pos.x, pos.y * aspect, 0, 1);          
-          gl_PointSize = radius;
-        } else {
-          gl_Position = vec4(-1000, -1000, -1000, 1);
-          gl_PointSize = 0.0;
-        }
-        color01_v2f = color01; //varying passes to frag
-    }`,
-    cull: {
-      enable: true,
-      face: 'back'
-    },
-  frag: pointsFrag,
+  profile: true,
+  vert: require("raw-loader!glslify-loader!./pointInterp.vert"),
+  frag: require("raw-loader!glslify-loader!./pointInterp.frag"),
+  cull: {
+    enable: true,
+    face: "back"
+  },
   depth: { enable: true },
   attributes: {
     propagationSources: () => regl.buffer(propagations.propagationSources),
     propagationTargets: () => regl.buffer(propagations.propagationTargets),
+    propagationColors: () => regl.buffer(propagations.propagationColors),
     startEndTimes: () => regl.buffer(startEndTimesFromAnimationDuration),
     color01: () => regl.buffer(propagations.startEndTimes.map(n => 0.5))
   },
   uniforms: {
     radius: regl.prop("radius"),
     aspect: ctx => ctx.viewportWidth / ctx.viewportHeight,
-    elapsedTime: regl.prop("elapsedTime")
+    elapsedTime: regl.prop("elapsedTime"),
+    projection: ({ viewportWidth, viewportHeight }) =>
+      mat4.perspective(
+        [],
+        Math.PI / 4.0,
+        viewportWidth / viewportHeight,
+        0.1,
+        100
+      ),
+    model: mat4.identity([]),
+    view: () => camera.view()
   },
   primitive: "point",
   count: () => propagations.startEndTimes.length
 });
 
-regl.frame(({ tick, time }) => {
+let f = regl.frame(({ tick, time }) => {
   //   regl.clear({
   //     color: [0, 0, 0, 1],
   //     depth: 1
   //   });
+  camera.tick();
   if (startTime === 0) {
     startTime = time;
-  } 
+  }
   // console.log(startTime, time, (time-startTime))
   // drawPoints({ radius: 10 });
-  interpPoints({radius: 10, elapsedTime: (time-startTime)})
+    const elapsedTime = elapsedTime >= duration? elapsedTime: time - startTime;
+    drawPoints({ radius: 10 });
+    interpPoints({ radius: 10, elapsedTime });
+    
 });
