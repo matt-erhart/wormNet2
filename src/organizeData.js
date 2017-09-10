@@ -1,5 +1,4 @@
 const _ = require("lodash");
-const d3 = require("d3");
 
 const getSourceAndTargetNeurons = (neurons, sourceId, targetId) => {
   const source = _.find(neurons, neuron => neuron.id === sourceId);

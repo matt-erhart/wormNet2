@@ -1,11 +1,14 @@
-const d3 = require("d3");
+const d3 = require("d3-scale");
+const extent = require("d3-array").extent;
+const d3rgb = require("d3-color").rgb;
+
 var math = require('mathjs');
 var dist = require('gl-vec2').distance;
 var vec2 = require('gl-vec2').fromValues;
 
 const topLeft = vec2(-1.0, 1.0);
 function rainbowRGB(value) {
-  const rgb = d3.rgb(d3.interpolateRainbow(value))
+  const rgb = d3rgb(d3.interpolateRainbow(value))
   return [rgb.r / 255.0, rgb.g / 255.0, rgb.b / 255.0]
 }
 
@@ -19,12 +22,12 @@ export const scaleNeuronPositions = (
   plotWidth = 1000,
   plotHeight = 1000
 ) => {
-  // var colorScale = d3.scaleSequential(d3.interpolateInferno).domain([0, width]);
+
   const pad = 20;
   const xs = neurons.map(row => +row.pos[0]);
   const ys = neurons.map(row => +row.pos[1]);
-  const xRange = d3.extent(xs);
-  const yRange = d3.extent(ys);
+  const xRange = extent(xs);
+  const yRange = extent(ys);
 
   const xScale = d3
     .scaleLinear()
@@ -48,7 +51,7 @@ export const scaleNeuronPositions = (
   });
 
   const dists = neurons.map(n => n.distFromTopLeft);
-  const distsRange = d3.extent(dists);
+  const distsRange = extent(dists);
   const distScale = d3
   .scaleLinear()
   .domain(distsRange).range([0,1])

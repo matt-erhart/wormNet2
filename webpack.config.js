@@ -4,6 +4,7 @@ module.exports = {
     path: __dirname,
     filename: 'bundle.js'
   },
+  devtool: 'eval-source-map',
   module: {
     loaders: [
       { test: /\.json/, loader: 'json-loader' },

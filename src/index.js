@@ -5,8 +5,9 @@ const ndarray = require("ndarray");
 const ease = require("eases/cubic-in-out");
 import { scaleNeuronPositions } from "./scaleNeuronPositions";
 const data = require("./assets/data/full.json");
+// const data = {}
 import { propagationsAsArrays } from "./organizeData";
-const d3 = require("d3");
+const scaleLinear = require("d3-scale").scaleLinear;
 const mat4 = require("gl-mat4");
 
 var hasCanvas = document.querySelector("canvas");
@@ -26,9 +27,9 @@ const nTimePoints = data.meta[0].numberOfTimePoints;
 let elapsedTime = 0;
 let prog = 0;
 let startTime = 0;
-let duration = 5; //seconds
-const timeScale = d3
-  .scaleLinear()
+let duration = 40; //seconds
+const timeScale = 
+  scaleLinear()
   .domain([0, nTimePoints])
   .range([0, 1]);
 
@@ -39,11 +40,10 @@ let startEndTimesFromAnimationDuration = propagations.startEndTimes.map(
 );
 
 const regl = require("regl")({
-  extensions: ["EXT_disjoint_timer_query"],
+  extensions: ["EXT_disjoint_timer_query", "OES_standard_derivatives"],
   canvas: el,
   onDone: require("fail-nicely")
 });
-
 let xy = regl.buffer(neurons.map(n => n.pos3d))
 let colors = regl.buffer(neurons.map(n => n.rgb))
 let camera = require("canvas-orbit-camera")(canvas);
@@ -51,6 +51,15 @@ let camera = require("canvas-orbit-camera")(canvas);
 const drawPoints = regl({
   vert: require("raw-loader!glslify-loader!./pointStatic.vert"),
   frag: require("raw-loader!glslify-loader!./pointInterp.frag"),
+  blend: {
+    enable: true,
+    func: {
+      srcRGB: 'one',
+      srcAlpha: 'one',
+      dstRGB: 'one minus src alpha',
+      dstAlpha: 'one minus src alpha',
+    },
+  },
   depth: { enable: false },
   attributes: {
     xy: () => xy,
@@ -81,14 +90,22 @@ let startEndTimes = regl.buffer(startEndTimesFromAnimationDuration);
 let color01 = regl.buffer(propagations.startEndTimes.map(n => 0.5));
 
 const interpPoints = regl({
-  profile: true,
+  blend: {
+    enable: true,
+    func: {
+      srcRGB: 'one',
+      srcAlpha: 'one',
+      dstRGB: 'one minus src alpha',
+      dstAlpha: 'one minus src alpha',
+    },
+  },
   vert: require("raw-loader!glslify-loader!./pointInterp.vert"),
   frag: require("raw-loader!glslify-loader!./pointInterp.frag"),
   cull: {
     enable: true,
     face: "back"
   },
-  depth: { enable: true },
+  depth: { enable: false },
   attributes: {
     propagationSources: () => propagationSources,
     propagationTargets: () => propagationTargets,
@@ -124,8 +141,8 @@ let f = regl.frame(({ tick, time }) => {
   if (startTime === 0) {
     startTime = time;
   }
-  // console.log(startTime, time, (time-startTime))
-  // drawPoints({ radius: 10 });
+
+    drawPoints({ radius: 10 });
     elapsedTime = elapsedTime >= duration? elapsedTime: time - startTime;
     drawPoints({ radius: 10 });
     interpPoints({ radius: 10, elapsedTime });

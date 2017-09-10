@@ -5,7 +5,7 @@
   "main": "bundle.js",
   "scripts": {
     "start": "webpack-dev-server",
-    "build": "webpack",
+    "build": "webpack -p --progress --config=webpack.prod.js ",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Giff Song <giff.song@gmail.com>",
@@ -13,7 +13,9 @@
   "dependencies": {
     "canvas-orbit-camera": "^1.0.2",
     "control-panel": "^1.2.0",
-    "d3": "^4.10.2",
+    "d3-array": "^1.2.0",
+    "d3-color": "^1.0.3",
+    "d3-scale": "^1.0.6",
     "eases": "^1.0.8",
     "fail-nicely": "^2.0.0",
     "gl-mat4": "^1.1.4",
@@ -40,6 +42,7 @@
     "glslify-loader": "^1.0.2",
     "json-loader": "^0.5.4",
     "raw-loader": "^0.5.1",
+    "uglifyjs-webpack-plugin": "^0.4.6",
     "webpack": "^3.5.5",
     "webpack-dev-server": "^2.7.1"
   }
