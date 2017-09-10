@@ -23,6 +23,7 @@ const neurons = scaleNeuronPositions(data.neurons, canvas.width, canvas.height);
 const propagations = propagationsAsArrays(data.propagations, neurons);
 
 const nTimePoints = data.meta[0].numberOfTimePoints;
+let elapsedTime = 0;
 let prog = 0;
 let startTime = 0;
 let duration = 5; //seconds
@@ -43,7 +44,8 @@ const regl = require("regl")({
   onDone: require("fail-nicely")
 });
 
-console.log(propagations)
+let xy = regl.buffer(neurons.map(n => n.pos3d))
+let colors = regl.buffer(neurons.map(n => n.rgb))
 let camera = require("canvas-orbit-camera")(canvas);
 
 const drawPoints = regl({
@@ -51,8 +53,8 @@ const drawPoints = regl({
   frag: require("raw-loader!glslify-loader!./pointInterp.frag"),
   depth: { enable: false },
   attributes: {
-    xy: () => regl.buffer(neurons.map(n => n.pos3d)),
-    colors: () => regl.buffer(neurons.map(n => n.rgb))
+    xy: () => xy,
+    colors: () => colors
   },
   uniforms: {
     radius: regl.prop("radius"),
@@ -72,6 +74,12 @@ const drawPoints = regl({
   count: () => neurons.length
 });
 
+let propagationSources = regl.buffer(propagations.propagationSources);
+let propagationTargets = regl.buffer(propagations.propagationTargets);
+let propagationColors = regl.buffer(propagations.propagationColors);
+let startEndTimes = regl.buffer(startEndTimesFromAnimationDuration);
+let color01 = regl.buffer(propagations.startEndTimes.map(n => 0.5));
+
 const interpPoints = regl({
   profile: true,
   vert: require("raw-loader!glslify-loader!./pointInterp.vert"),
@@ -82,11 +90,11 @@ const interpPoints = regl({
   },
   depth: { enable: true },
   attributes: {
-    propagationSources: () => regl.buffer(propagations.propagationSources),
-    propagationTargets: () => regl.buffer(propagations.propagationTargets),
-    propagationColors: () => regl.buffer(propagations.propagationColors),
-    startEndTimes: () => regl.buffer(startEndTimesFromAnimationDuration),
-    color01: () => regl.buffer(propagations.startEndTimes.map(n => 0.5))
+    propagationSources: () => propagationSources,
+    propagationTargets: () => propagationTargets,
+    propagationColors: () => propagationColors,
+    startEndTimes: () => startEndTimes,
+    color01: () => color01
   },
   uniforms: {
     radius: regl.prop("radius"),
@@ -118,7 +126,7 @@ let f = regl.frame(({ tick, time }) => {
   }
   // console.log(startTime, time, (time-startTime))
   // drawPoints({ radius: 10 });
-    const elapsedTime = elapsedTime >= duration? elapsedTime: time - startTime;
+    elapsedTime = elapsedTime >= duration? elapsedTime: time - startTime;
     drawPoints({ radius: 10 });
     interpPoints({ radius: 10, elapsedTime });
     
