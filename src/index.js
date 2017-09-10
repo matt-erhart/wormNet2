@@ -132,6 +132,44 @@ const interpPoints = regl({
   count: () => propagations.startEndTimes.length
 });
 
+let linePos = (new Array(5)).fill().map((x, i) => {
+  var theta = 2.0 * Math.PI * i / 5
+  return [ Math.sin(theta), Math.cos(theta) ]
+})
+console.log(linePos)
+
+let line = regl({
+  frag: `
+    precision mediump float;
+    uniform vec4 color;
+    void main() {
+      gl_FragColor = color;
+    }`,
+
+  vert: `
+    precision mediump float;
+    attribute vec2 position;
+    void main() {
+      gl_Position = vec4(position, 0, 1);
+    }`,
+
+  attributes: {
+    position: linePos
+  },
+
+  uniforms: {
+    color: [1, 0, 0, 1]
+  },
+
+  elements: [
+    [0, 1],
+    [0, 2],
+    [0, 3]
+  ],
+
+  lineWidth: 1
+})
+
 let f = regl.frame(({ tick, time }) => {
   //   regl.clear({
   //     color: [0, 0, 0, 1],
@@ -141,7 +179,7 @@ let f = regl.frame(({ tick, time }) => {
   if (startTime === 0) {
     startTime = time;
   }
-
+    line()
     drawPoints({ radius: 10 });
     elapsedTime = elapsedTime >= duration? elapsedTime: time - startTime;
     drawPoints({ radius: 10 });
