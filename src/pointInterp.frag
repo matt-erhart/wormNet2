@@ -2,7 +2,6 @@
 #extension GL_OES_standard_derivatives : enable
 #endif
 
-
 precision mediump float;
 varying vec4 color01_v2f; //from the vertex shader
 void main () {

@@ -43,6 +43,9 @@ export const propagationsAsArrays = (propagations, neurons) => {
   return {propagationSources, propagationTargets, startEndTimes, propagationColors}
 };
 
+export const spikes = (startEndTimes, neurons) => { }
+  
+
 // activationLocations = (propagations, time) => {
 //   if (!propagations || !time) return;
 
