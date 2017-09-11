@@ -1,5 +1,6 @@
 const _ = require("lodash");
-
+import { colors } from "./constants";
+import { rgb01 } from "./scaleNeuronPositions";
 const getSourceAndTargetNeurons = (neurons, sourceId, targetId) => {
   const source = _.find(neurons, neuron => neuron.id === sourceId);
   const target = _.find(neurons, neuron => neuron.id === targetId);
@@ -10,24 +11,25 @@ const getSourceAndTargetNeurons = (neurons, sourceId, targetId) => {
 export const linkPositions = (links, neurons) => {
   let linksArray = [];
   let indexes = [];
-  links.forEach((link,i) => {
+  links.forEach((link, i) => {
     const { source, target } = getSourceAndTargetNeurons(
       neurons,
       link.source.id,
       link.target.id
     );
-    linksArray.push(source.pos3d)
-    linksArray.push(target.pos3d)
-    indexes[i] = [i*2-2, i*2-1]
+    linksArray.push(source.pos3d);
+    linksArray.push(target.pos3d);
+    indexes[i] = [i * 2 - 2, i * 2 - 1];
   });
-  return { linksArray,  indexes};  
+  return { linksArray, indexes };
 };
 
 export const propagationsAsArrays = (propagations, neurons) => {
   let propagationSources = [];
   let propagationTargets = [];
   let startEndTimes = [];
-  let propagationColors = [];
+  let propagationPosColors = [];
+  let propagationTypeColors = [];
 
   propagations.forEach((propagation, i) => {
     const { source, target } = getSourceAndTargetNeurons(
@@ -37,14 +39,26 @@ export const propagationsAsArrays = (propagations, neurons) => {
     );
     propagationSources[i] = source.pos3d;
     propagationTargets[i] = target.pos3d;
-    propagationColors[i] = source.rgb;
-    startEndTimes[i] = [propagation.source.activationTime, propagation.target.activationTime];
-  });
-  return {propagationSources, propagationTargets, startEndTimes, propagationColors}
-};
+    propagationPosColors[i] = source.rgb;
+    propagationTypeColors[i] =
+      source.type === "excites"
+        ? rgb01(colors.excitesPropagation)
+        : rgb01(colors.inhibitsPropagation);
 
-export const spikes = (startEndTimes, neurons) => { }
-  
+    startEndTimes[i] = [
+      propagation.source.activationTime,
+      propagation.target.activationTime
+    ];
+  });
+  console.log(propagationTypeColors[0])
+  return {
+    propagationSources,
+    propagationTargets,
+    startEndTimes,
+    propagationPosColors,
+    propagationTypeColors
+  };
+};
 
 // activationLocations = (propagations, time) => {
 //   if (!propagations || !time) return;

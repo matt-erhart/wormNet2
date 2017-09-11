@@ -4,7 +4,7 @@ const vectorFill = require("ndarray-vector-fill");
 const ndarray = require("ndarray");
 const ease = require("eases/cubic-in-out");
 import { scaleNeuronPositions } from "./scaleNeuronPositions";
-const data = require("./assets/data/feed_json.json");
+const data = require("./assets/data/full.json");
 // const data = {}
 import { propagationsAsArrays, linkPositions } from "./organizeData";
 const scaleLinear = require("d3-scale").scaleLinear;
@@ -14,7 +14,8 @@ import _ from "lodash";
 var hasCanvas = document.querySelector("canvas");
 if (hasCanvas) hasCanvas.remove();
 let canvas = document.createElement("canvas");
-
+import {colors} from './constants'
+import {rgb01} from './scaleNeuronPositions'
 canvas.height = window.innerHeight - 20;
 canvas.width = window.innerWidth - 20;
 
@@ -68,7 +69,21 @@ let camera = require("canvas-orbit-camera")(canvas,{eye:[0,0,3.9]});
 spikes = _.zip.apply(_, spikes); //transpose
 let spikeBuffer = regl.buffer(spikes[0]);
 let xy = regl.buffer(neurons.map(n => n.pos3d));
-let colors = regl.buffer(neurons.map(n => n.rgb));
+const type = neurons.map(n => n.type);
+const active = {excites: colors.excitesActive, inhibits: colors.inhibitsActive }
+const inactive = {excites: colors.excitesInActive, inhibits: colors.inhibitsInActive }
+
+let colorByTime = spikes.map((arr,i) => {
+  return arr.map((rad, i) => {
+    return rad === spikeRadius?
+    rgb01(active[type[i]]):
+    rgb01(inactive[type[i]])
+  })
+})
+
+let colorBuff = regl.buffer(colorByTime[0]);
+
+
 const drawPoints = regl({
   vert: require("raw-loader!glslify-loader!./pointStatic.vert"),
   frag: require("raw-loader!glslify-loader!./pointInterp.frag"),
@@ -84,7 +99,7 @@ const drawPoints = regl({
   depth: { enable: false },
   attributes: {
     xy: () => xy,
-    colors: () => colors,
+    colors: () => colorBuff,
     radius: spikeBuffer
   },
   uniforms: {
@@ -110,7 +125,7 @@ const drawPoints = regl({
  */
 let propagationSources = regl.buffer(propagations.propagationSources);
 let propagationTargets = regl.buffer(propagations.propagationTargets);
-let propagationColors = regl.buffer(propagations.propagationColors);
+let propagationColors = regl.buffer(propagations.propagationTypeColors);
 let startEndTimes = regl.buffer(startEndTimesFromAnimationDuration);
 let color01 = regl.buffer(propagations.startEndTimes.map(n => 0.5));
 
@@ -162,7 +177,6 @@ const interpPoints = regl({
  */
 let line = regl({
   depth: { enable: false },
-
   frag: `
     precision mediump float;
     uniform vec4 color;
@@ -216,14 +230,19 @@ let f = regl.frame(({ tick, time }) => {
   }
   const t = Math.round(elapsedScale.invert(elapsedTime));
   line();
-  if (t < nTimePoints) spikeBuffer({ data: spikes[t] });
+  if (t < nTimePoints) {
+    spikeBuffer({ data: spikes[t] });
+    colorBuff({data: colorByTime[t]})
+  }
+  
   drawPoints();
   elapsedTime = elapsedTime >= duration ? elapsedTime : time - startTime;
   drawPoints({ radius: 10 });
   interpPoints([
     { radius: 10, elapsedTime }, 
-    { radius: 8, elapsedTime: elapsedTime - .015 },
-    { radius: 6, elapsedTime: elapsedTime - .03 }
+    { radius: 8, elapsedTime: elapsedTime - .01 },
+    { radius: 6, elapsedTime: elapsedTime - .02 },
+    { radius: 4, elapsedTime: elapsedTime - .03 }
   ]);
   
 });
