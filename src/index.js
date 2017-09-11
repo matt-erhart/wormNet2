@@ -6,7 +6,7 @@ const ease = require("eases/cubic-in-out");
 import { scaleNeuronPositions } from "./scaleNeuronPositions";
 const data = require("./assets/data/full.json");
 // const data = {}
-import { propagationsAsArrays } from "./organizeData";
+import { propagationsAsArrays, linkPositions } from "./organizeData";
 const scaleLinear = require("d3-scale").scaleLinear;
 const mat4 = require("gl-mat4");
 
@@ -20,7 +20,7 @@ canvas.width = window.innerWidth - 20;
 const el = document.body.appendChild(canvas);
 
 const neurons = scaleNeuronPositions(data.neurons, canvas.width, canvas.height);
-
+const links = linkPositions(data.links, neurons);
 const propagations = propagationsAsArrays(data.propagations, neurons);
 
 const nTimePoints = data.meta[0].numberOfTimePoints;
@@ -136,9 +136,11 @@ let linePos = (new Array(5)).fill().map((x, i) => {
   var theta = 2.0 * Math.PI * i / 5
   return [ Math.sin(theta), Math.cos(theta) ]
 })
-console.log(linePos)
+console.log(links)
 
 let line = regl({
+  depth: { enable: false },
+  
   frag: `
     precision mediump float;
     uniform vec4 color;
@@ -148,26 +150,37 @@ let line = regl({
 
   vert: `
     precision mediump float;
-    attribute vec2 position;
-    void main() {
-      gl_Position = vec4(position, 0, 1);
-    }`,
+    attribute vec3 position;
+    uniform mat4 projection, view, model;
+    uniform float aspect;
 
+    void main() {
+      gl_Position = projection * view * model * vec4(position.x, position.y * aspect, position.z, 1);
+    }`,
+    
   attributes: {
-    position: linePos
+    position: links.linksArray
   },
 
   uniforms: {
-    color: [1, 0, 0, 1]
+    color: [0.5, 0.5, 0.5, 1],
+    aspect: ctx => ctx.viewportWidth / ctx.viewportHeight,
+    elapsedTime: regl.prop("elapsedTime"),
+    projection: ({ viewportWidth, viewportHeight }) =>
+      mat4.perspective(
+        [],
+        Math.PI / 4.0,
+        viewportWidth / viewportHeight,
+        0.1,
+        100
+      ),
+    model: mat4.identity([]),
+    view: () => camera.view()
   },
 
-  elements: [
-    [0, 1],
-    [0, 2],
-    [0, 3]
-  ],
-
-  lineWidth: 1
+  count: links.linksArray.length,
+  lineWidth: 1,
+  primitive: 'line'
 })
 
 let f = regl.frame(({ tick, time }) => {

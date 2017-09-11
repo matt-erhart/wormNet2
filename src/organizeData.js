@@ -7,19 +7,20 @@ const getSourceAndTargetNeurons = (neurons, sourceId, targetId) => {
   return { source, target };
 };
 
-const linkPositions = (links, neurons) => {
-  const scaledLinks = links.map(link => {
+export const linkPositions = (links, neurons) => {
+  let linksArray = [];
+  let indexes = [];
+  links.forEach((link,i) => {
     const { source, target } = getSourceAndTargetNeurons(
       neurons,
       link.source.id,
       link.target.id
     );
-    const sx = source.posScaled[0];
-    const sy = source.posScaled[1];
-    const tx = target.posScaled[0];
-    const ty = target.posScaled[1];
-    return { sx, sy, tx, ty, id: link.id };
+    linksArray.push(source.pos3d)
+    linksArray.push(target.pos3d)
+    indexes[i] = [i*2-2, i*2-1]
   });
+  return { linksArray,  indexes};  
 };
 
 export const propagationsAsArrays = (propagations, neurons) => {
