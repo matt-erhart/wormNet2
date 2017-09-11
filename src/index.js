@@ -4,7 +4,7 @@ const vectorFill = require("ndarray-vector-fill");
 const ndarray = require("ndarray");
 const ease = require("eases/cubic-in-out");
 import { scaleNeuronPositions } from "./scaleNeuronPositions";
-const data = require("./assets/data/full.json");
+const data = require("./assets/data/feed_json.json");
 // const data = {}
 import { propagationsAsArrays, linkPositions } from "./organizeData";
 const scaleLinear = require("d3-scale").scaleLinear;
@@ -60,7 +60,7 @@ const regl = require("regl")({
   onDone: require("fail-nicely")
 });
 
-let camera = require("canvas-orbit-camera")(canvas);
+let camera = require("canvas-orbit-camera")(canvas,{eye:[0,0,3.9]});
 
 /**
  * THE NEURONS
@@ -206,10 +206,10 @@ let line = regl({
 });
 
 let f = regl.frame(({ tick, time }) => {
-  //   regl.clear({
-  //     color: [0, 0, 0, 1],
-  //     depth: 1
-  //   });
+    regl.clear({
+      color: [0, 0, 0, 1],
+      depth: 1
+    });
   camera.tick();
   if (startTime === 0) {
     startTime = time;
@@ -220,5 +220,10 @@ let f = regl.frame(({ tick, time }) => {
   drawPoints();
   elapsedTime = elapsedTime >= duration ? elapsedTime : time - startTime;
   drawPoints({ radius: 10 });
-  interpPoints({ radius: 10, elapsedTime });
+  interpPoints([
+    { radius: 10, elapsedTime }, 
+    { radius: 8, elapsedTime: elapsedTime - .015 },
+    { radius: 6, elapsedTime: elapsedTime - .03 }
+  ]);
+  
 });
