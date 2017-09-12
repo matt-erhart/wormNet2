@@ -16,20 +16,28 @@ if (hasCanvas) hasCanvas.remove();
 let canvas = document.createElement("canvas");
 import {colors} from './constants'
 import {rgb01} from './scaleNeuronPositions'
-canvas.height = window.innerHeight - 20;
-canvas.width = window.innerWidth - 20;
 
+const padCanvas = 20;
+if (window.innerHeight > window.innerWidth) {
+  canvas.height = window.innerWidth - padCanvas;
+  canvas.width = window.innerWidth - padCanvas;
+} else {
+  canvas.height = window.innerHeight - padCanvas;
+  canvas.width = window.innerHeight - padCanvas;
+}
+
+
+Object.assign(document.body.style,{display: "flex", justifyContent: "center", background: "black"});
 const el = document.body.appendChild(canvas);
 
 let neurons = scaleNeuronPositions(data.neurons, canvas.width, canvas.height);
 const links = linkPositions(data.links, neurons);
 const propagations = propagationsAsArrays(data.propagations, neurons);
-
-const nTimePoints = data.meta[0].numberOfTimePoints;
+const nTimePoints = _.max(_.flattenDeep(propagations.startEndTimes).map(x=>+x))
 let elapsedTime = 0;
 let prog = 0;
 let startTime = 0;
-let duration = 40; //seconds
+let duration = 60; //seconds
 const timeScale = scaleLinear()
   .domain([0, nTimePoints])
   .range([0, 1]);
@@ -38,8 +46,8 @@ const elapsedScale = scaleLinear()
   .range([0, duration]);
 
 const timeRange = range(nTimePoints).map(x => timeScale(x) * duration);
-const spikeRadius = 50;
-const radius = 20;
+const spikeRadius = 30;
+const radius = 10;
 let spikes = neurons.map((neuron, i) => {
   const spks = _.flattenDeep(
     neuron.spikeTimes.map(x => range(8).map(y => y + x))
@@ -55,13 +63,16 @@ let startEndTimesFromAnimationDuration = propagations.startEndTimes.map(
   }
 );
 
+console.log(_.max(_.flattenDeep(propagations.startEndTimes).map(x=>+x)), propagations)
+
+
 const regl = require("regl")({
   extensions: ["EXT_disjoint_timer_query", "OES_standard_derivatives"],
   canvas: el,
   onDone: require("fail-nicely")
 });
 
-let camera = require("canvas-orbit-camera")(canvas,{eye:[0,0,3.9]});
+let camera = require("canvas-orbit-camera")(canvas,{eye:[0,0,3.4]});
 
 /**
  * THE NEURONS
@@ -199,7 +210,7 @@ let line = regl({
   },
 
   uniforms: {
-    color: [0.5, 0.5, 0.5, 1],
+    color: [47/255, 47/255, 47/255, 1],
     aspect: ctx => ctx.viewportWidth / ctx.viewportHeight,
     elapsedTime: regl.prop("elapsedTime"),
     projection: ({ viewportWidth, viewportHeight }) =>
@@ -237,12 +248,10 @@ let f = regl.frame(({ tick, time }) => {
   
   drawPoints();
   elapsedTime = elapsedTime >= duration ? elapsedTime : time - startTime;
-  drawPoints({ radius: 10 });
   interpPoints([
-    { radius: 10, elapsedTime }, 
-    { radius: 8, elapsedTime: elapsedTime - .01 },
-    { radius: 6, elapsedTime: elapsedTime - .02 },
-    { radius: 4, elapsedTime: elapsedTime - .03 }
+    { radius: 7, elapsedTime }, 
+    { radius: 5, elapsedTime: elapsedTime - .01 },
+    { radius: 3, elapsedTime: elapsedTime - .02 },
   ]);
   
 });

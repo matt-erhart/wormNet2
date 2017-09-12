@@ -42,8 +42,8 @@ export const propagationsAsArrays = (propagations, neurons) => {
     propagationPosColors[i] = source.rgb;
     propagationTypeColors[i] =
       source.type === "excites"
-        ? rgb01(colors.excitesPropagation)
-        : rgb01(colors.inhibitsPropagation);
+        ? rgb01(colors.excitesInActive)
+        : rgb01(colors.inhibitsInActive);
 
     startEndTimes[i] = [
       propagation.source.activationTime,
